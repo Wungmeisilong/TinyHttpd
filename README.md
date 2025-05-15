@@ -100,7 +100,8 @@ sudo apt install libcgi-pm-perl
 ```
 
 返回结果：
-![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/da8347b48f0f4db889a98b6211785e9f.png#pic_center)
+![image](./img/image-4.png)
+
 可以看到返回的，返回体中是test.html这个网页的代码（test.html的数据），这就是为什么在浏览器时输入`http://192.168.40.128:4000/test.html`路径时，出现的是`test.html`网页。
 
 （2）POST请求。
@@ -116,7 +117,8 @@ sudo apt install libcgi-pm-perl
 ```
 
 返回结果：
-![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/79eb70d9e1174002b1eafa48913164f2.png#pic_center)
+![image](./img/image-5.png)
+
 仔细看途中的返回信息，可以发现返回的数据color=bule，也就是说明我们需求得到了服务器正确响应。这样一来我们拿到的网页就是蓝色的。
 
 **2.在Ubuntu上，IP地址使用127.0.0.1。**
