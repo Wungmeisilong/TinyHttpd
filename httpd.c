@@ -224,25 +224,47 @@ void execute_cgi(int client, const char *path,
     if (strcasecmp(method, "GET") == 0)
         while ((numchars > 0) && strcmp("\n", buf))  /* read & discard headers */
             numchars = get_line(client, buf, sizeof(buf));
-    else if (strcasecmp(method, "POST") == 0) /*POST*/
-    {
-        numchars = get_line(client, buf, sizeof(buf));
-        while ((numchars > 0) && strcmp("\n", buf))
-        {
-            buf[15] = '\0';
-            if (strcasecmp(buf, "Content-Length:") == 0)
-                content_length = atoi(&(buf[16]));
-            numchars = get_line(client, buf, sizeof(buf));
+    else if (strcasecmp(method, "POST") == 0) {
+        int content_length_test = content_length;
+        // 1. ��ȡ����ͷ����λ Content-Length
+        while ((numchars = get_line(client, buf, sizeof(buf))) > 0 && strcmp(buf, "\n")) {
+            if (strcasestr(buf, "Content-Length:")) {
+                char* value = strchr(buf, ':') + 1;  // ��̬��λð��
+                while (*value == ' ') value++;        // �����ո�
+                content_length = atoi(value);
+            }
         }
-        if (content_length == -1) {
+        // 2. У�� Content-Length
+        if (content_length <= 0) {
             bad_request(client);
             return;
         }
+        // 3. ��ȡ����������
+        char* post_data = (char*)malloc(content_length_test + 1);
+        int bytes_read = 0;
+        while (bytes_read < content_length_test) {
+            int n = recv(client, post_data + bytes_read, content_length_test - bytes_read, 0);
+            if (n <= 0) {  // �����쳣
+                free(post_data);
+                return;
+            }
+            bytes_read += n;
+        }
+        post_data[content_length_test] = '\0';
+
+        // //4. ������Ӧ���������������Ӧͷ����
+        sprintf(buf, "HTTP/1.0 200 OK\r\n");
+        send(client, buf, strlen(buf), 0);
+        sprintf(buf, "Content-Type: text/html\r\n\r\n");  // ���зָ�ͷ������
+        send(client, buf, strlen(buf), 0);
+        sprintf(buf, "<h1>Received: %s</h1>", post_data);
+        send(client, buf, strlen(buf), 0);
+
+        free(post_data);
     }
     else/*HEAD or other*/
     {
     }
-
 
     if (pipe(cgi_output) < 0) {
         cannot_execute(client);
@@ -269,6 +291,7 @@ void execute_cgi(int client, const char *path,
         dup2(cgi_input[0], STDIN);
         close(cgi_output[0]);
         close(cgi_input[1]);
+        
         sprintf(meth_env, "REQUEST_METHOD=%s", method);
         putenv(meth_env);
         if (strcasecmp(method, "GET") == 0) {
